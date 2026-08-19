@@ -10,6 +10,8 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import lk.com.synsoft.offlinepos.config.AppConfig;
 import lk.com.synsoft.offlinepos.config.AppPaths;
+import lk.com.synsoft.offlinepos.config.DataSourceProvider;
+import lk.com.synsoft.offlinepos.db.MigrationRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,8 +38,12 @@ public class MainApp extends Application {
         Thread.setDefaultUncaughtExceptionHandler(
                 (thread, error) -> log.error("Uncaught error on thread {}", thread.getName(), error));
 
+        // The till has no server to migrate it, so it catches its own schema up
+        // at every launch, before anything can read or write a row.
+        int applied = new MigrationRunner(DataSourceProvider.get()).migrate();
+
         stage.setTitle(config.appName());
-        stage.setScene(buildScene(config));
+        stage.setScene(buildScene(config, applied));
         stage.setMinWidth(1024);
         stage.setMinHeight(700);
         stage.setMaximized(true);
@@ -46,11 +52,11 @@ public class MainApp extends Application {
         log.info("Window shown. Foundation is up.");
     }
 
-    private Scene buildScene(AppConfig config) {
+    private Scene buildScene(AppConfig config, int migrationsApplied) {
         Label title = new Label(config.appName());
         title.getStyleClass().add("h1");
 
-        Label subtitle = new Label("Phase 0 - project foundation");
+        Label subtitle = new Label("Phase 1 - database schema");
         subtitle.getStyleClass().add("muted");
 
         Label settings = new Label(config.describe());
@@ -59,10 +65,15 @@ public class MainApp extends Application {
         Label logs = new Label("Logs: " + AppPaths.logDir());
         logs.getStyleClass().addAll("mono", "muted");
 
-        Label next = new Label("Next: Phase 1 - database schema");
-        next.getStyleClass().add("status-ok");
+        Label schema = new Label(migrationsApplied == 0
+                ? "Schema up to date."
+                : "Applied " + migrationsApplied + " migration(s).");
+        schema.getStyleClass().add("status-ok");
 
-        VBox card = new VBox(10, title, subtitle, new Label(), settings, logs, new Label(), next);
+        Label next = new Label("Next: Phase 2 - data access plumbing");
+        next.getStyleClass().add("muted");
+
+        VBox card = new VBox(10, title, subtitle, new Label(), settings, logs, new Label(), schema, next);
         card.getStyleClass().add("card");
         card.setAlignment(Pos.CENTER_LEFT);
         card.setMaxWidth(720);
@@ -80,7 +91,8 @@ public class MainApp extends Application {
 
     @Override
     public void stop() {
-        // Phase 2 closes the connection pool here; Phase 15 takes a backup.
+        // Phase 15 takes a backup here as well.
         log.info("Shutting down.");
+        DataSourceProvider.close();
     }
 }

@@ -1,0 +1,15 @@
+# Migrations, applied in this order.
+#
+# An explicit index rather than scanning the folder: a classpath directory
+# cannot be listed portably once the app is packaged in a jar, and being able
+# to read the exact running order in one place is worth more than the
+# convenience of dropping a file in.
+#
+# Append new migrations at the end. Never edit or reorder one that has shipped -
+# the runner stores a checksum and will refuse to start if an applied
+# migration's contents have changed.
+
+V1__baseline_schema.sql
+V2__integrity_constraints.sql
+V3__seed_reference_data.sql
+V4__bootstrap.sql

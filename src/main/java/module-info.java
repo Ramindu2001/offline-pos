@@ -17,6 +17,7 @@ module lk.com.synsoft.offlinepos {
 
     requires java.sql;
     requires org.slf4j;
+    requires com.zaxxer.hikari;
 
     // JavaFX constructs the Application subclass reflectively.
     opens lk.com.synsoft.offlinepos.app to javafx.graphics, javafx.fxml;
