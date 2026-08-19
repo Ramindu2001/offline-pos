@@ -1,0 +1,12 @@
+# Normalise line endings so diffs stay clean across machines.
+* text=auto eol=lf
+
+# Windows-only scripts must keep CRLF or cmd.exe mis-parses them.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary
+*.jar binary
+*.png binary
+*.jpg binary
+*.ico binary

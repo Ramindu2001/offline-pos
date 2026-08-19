@@ -1,0 +1,109 @@
+/* ===========================================================================
+   OfflinePOS - design tokens
+
+   Ported from the Cloud POS React app's src/index.css so the offline till is
+   recognisably the same product. Matching these values is most of what
+   "feels like Cloud POS" means - change one here and the whole app follows.
+
+   Phase 4 builds the shell (sidebar, header, layouts) on top of these.
+   Nothing below this block should hardcode a colour.
+   =========================================================================== */
+
+.root {
+    /* --- brand ramp --- */
+    -fx-brand-50:  #eff6ff;
+    -fx-brand-100: #dbeafe;
+    -fx-brand-200: #bfdbfe;
+    -fx-brand-300: #93c5fd;
+    -fx-brand-400: #60a5fa;
+    -fx-brand-500: #3b82f6;
+    -fx-brand-600: #2563eb;
+    -fx-brand-700: #1d4ed8;
+    -fx-brand-800: #1e40af;
+    -fx-brand-900: #1e3a8a;
+
+    /* --- surfaces --- */
+    -fx-surface: #ffffff;
+    -fx-canvas:  #f3f4f6;
+    -fx-line:    #e5e7eb;
+    -fx-muted:   #6b7280;
+    -fx-ink:     #111827;
+
+    /* --- semantic --- */
+    -fx-success: #16a34a;
+    -fx-warning: #d97706;
+    -fx-danger:  #dc2626;
+
+    -fx-background-color: -fx-canvas;
+    -fx-font-family: "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-ink;
+}
+
+/* --- type scale --- */
+
+.h1 {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-ink;
+}
+
+.h2 {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-ink;
+}
+
+.muted {
+    -fx-text-fill: -fx-muted;
+}
+
+.mono {
+    -fx-font-family: "Consolas", "Cascadia Mono", monospace;
+}
+
+/* --- surfaces --- */
+
+.card {
+    -fx-background-color: -fx-surface;
+    -fx-background-radius: 8px;
+    -fx-border-color: -fx-line;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-padding: 20px;
+}
+
+/* --- buttons --- */
+
+.button-primary {
+    -fx-background-color: -fx-brand-600;
+    -fx-text-fill: white;
+    -fx-background-radius: 6px;
+    -fx-padding: 8px 16px;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+}
+
+.button-primary:hover {
+    -fx-background-color: -fx-brand-700;
+}
+
+.button-secondary {
+    -fx-background-color: -fx-surface;
+    -fx-text-fill: -fx-ink;
+    -fx-border-color: -fx-line;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 8px 16px;
+    -fx-cursor: hand;
+}
+
+.button-secondary:hover {
+    -fx-background-color: -fx-canvas;
+}
+
+/* --- status text --- */
+
+.status-ok    { -fx-text-fill: -fx-success; }
+.status-warn  { -fx-text-fill: -fx-warning; }
+.status-error { -fx-text-fill: -fx-danger; }
