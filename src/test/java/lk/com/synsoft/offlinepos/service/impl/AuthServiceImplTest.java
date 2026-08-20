@@ -8,10 +8,13 @@ import java.sql.Statement;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.sql.DataSource;
 
+import lk.com.synsoft.offlinepos.app.Navigation;
+import lk.com.synsoft.offlinepos.app.ViewRouter;
 import lk.com.synsoft.offlinepos.config.AppConfig;
 import lk.com.synsoft.offlinepos.config.DataSourceProvider;
 import lk.com.synsoft.offlinepos.dao.impl.PermissionDaoImpl;
@@ -212,6 +215,60 @@ class AuthServiceImplTest {
 
         // The refusal was not cosmetic: the password is untouched.
         assertTrue(canSignIn(CASHIER_PASSWORD), "The refused call changed the password anyway.");
+    }
+
+    @Test
+    @DisplayName("GATE: the sidebar shows a real signed-in cashier exactly what the role reaches")
+    void sidebarMatchesTheRole() throws Exception {
+        AppContext cashier = signInAsCashier();
+
+        // The role holds VIEW on Products and on Invoice List, and nothing else.
+        // Home, Analytics and All Reports carry no feature in navigation.js, so
+        // anybody who signed in gets those three.
+        assertEquals(
+                List.of("Home", "Analytics", "Invoice List", "Products", "All Reports"),
+                menuLabels(cashier));
+
+        // Store, Credit and Expenses are switched on for this shop but the role
+        // holds nothing in them, so the headings are dropped rather than shown
+        // over an empty list.
+        assertEquals(List.of("(top)", "Sales & Orders", "Items", "Reports"), menuGroups(cashier));
+
+        // And what is shown is what opens: the router agrees with the menu on
+        // every entry, because both read the same guard off the same Route.
+        for (Navigation.Group group : Navigation.visibleTo(cashier)) {
+            for (Navigation.Item item : group.items()) {
+                assertEquals(item.route(), ViewRouter.resolve(item.route(), cashier),
+                        item.label() + " is in the menu but the router would refuse it.");
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("the administrator sees the Control section the cashier does not")
+    void sidebarForTheAdministrator() throws Exception {
+        AppContext admin = signInAsAdministrator();
+
+        assertTrue(menuGroups(admin).contains("Control"));
+        assertTrue(menuLabels(admin).contains("Company"));
+        assertTrue(menuLabels(admin).contains("POS"));
+
+        // Still bounded by the shop's own switches, super admin or not.
+        assertFalse(menuLabels(admin).contains("Prescriptions"),
+                "is_prescription is off for the seeded shop.");
+    }
+
+    private static List<String> menuLabels(AppContext context) {
+        return Navigation.visibleTo(context).stream()
+                .flatMap(group -> group.items().stream())
+                .map(Navigation.Item::label)
+                .toList();
+    }
+
+    private static List<String> menuGroups(AppContext context) {
+        return Navigation.visibleTo(context).stream()
+                .map(group -> group.title() == null ? "(top)" : group.title())
+                .toList();
     }
 
     @Test

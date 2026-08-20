@@ -29,11 +29,9 @@ module lk.com.synsoft.offlinepos {
     // JavaFX constructs the Application subclass reflectively.
     opens lk.com.synsoft.offlinepos.app to javafx.graphics, javafx.fxml;
 
-    // Phase 4 adds:
-    //   opens lk.com.synsoft.offlinepos.controller to javafx.fxml;
-    // FXML controllers are instantiated and injected reflectively, so the
-    // package must be open. It is left out until the first controller exists,
-    // because opening an empty package is a compile warning.
+    // FXML controllers are instantiated and their @FXML fields injected
+    // reflectively, so the package has to be open to the loader.
+    opens lk.com.synsoft.offlinepos.controller to javafx.fxml;
 
     exports lk.com.synsoft.offlinepos.app;
     exports lk.com.synsoft.offlinepos.config;

@@ -15,32 +15,29 @@ import lk.com.synsoft.offlinepos.config.AppPaths;
 import lk.com.synsoft.offlinepos.config.DataSourceProvider;
 import lk.com.synsoft.offlinepos.db.StartupCheck;
 import lk.com.synsoft.offlinepos.error.ErrorHandler;
+import lk.com.synsoft.offlinepos.ui.BackgroundTasks;
+import lk.com.synsoft.offlinepos.ui.Shortcuts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * The JavaFX application.
  *
- * The self-check runs, the schema is brought up to date, and a failure at any of
- * it produces one readable sentence on screen instead of a stack trace on a
- * console nobody is looking at.
+ * It does three things and then gets out of the way: check that the till can
+ * work at all, wire the services, and hand the window to the router. Everything
+ * after that is a route.
  *
- * Phase 3 built the security stack behind {@link Services} but no screen to
- * reach it through. Phase 4 replaces the placeholder scene below with the real
- * shell - login, sidebar, header, the four layouts - and the router that will
- * refuse to build any view without a signed-in {@code AppContext}.
+ * When a check fails there is no router and no login screen - only a card
+ * saying which check failed. Starting the application over a database it could
+ * not reach would replace one clear sentence with a stream of failures further
+ * from the cause.
  */
 public class MainApp extends Application {
 
     private static final Logger log = LoggerFactory.getLogger(MainApp.class);
 
-    /**
-     * Built once the self-check has passed, and handed to Phase 4's router.
-     * Nothing is wired before then: a service graph over a database that failed
-     * its checks would only fail again, further from the message that explains
-     * it.
-     */
     private Services services;
+    private ViewRouter router;
 
     @Override
     public void start(Stage stage) {
@@ -55,66 +52,49 @@ public class MainApp extends Application {
         // to. This has to be in place before the first task is started.
         ErrorHandler.installUncaughtHandler();
 
+        Scene scene = new Scene(new StackPane(), 1280, 800);
+        scene.getStylesheets().add(
+                MainApp.class.getResource("/lk/com/synsoft/offlinepos/css/app.css").toExternalForm());
+
         stage.setTitle(config.appName());
-        stage.setScene(buildScene(config));
+        stage.setScene(scene);
         stage.setMinWidth(1024);
         stage.setMinHeight(700);
         stage.setMaximized(true);
+
+        startUp(stage, scene);
+
         stage.show();
     }
 
-    private Scene buildScene(AppConfig config) {
-        VBox card;
+    private void startUp(Stage stage, Scene scene) {
         try {
             // The till has no server to migrate it and nobody to call, so it
             // checks itself at every launch, before anything can read or write
             // a row.
             StartupCheck.Report report = new StartupCheck(DataSourceProvider.get()).run();
 
-            if (report.ok()) {
-                services = new Services(DataSourceProvider.get());
-                log.info("Services wired. Waiting for a sign-in.");
+            if (!report.ok()) {
+                scene.setRoot(new StackPane(failedCard(report)));
+                log.warn("Startup blocked; the login screen was not reached.");
+                return;
             }
 
-            card = report.ok() ? readyCard(config, report) : failedCard(report);
-            log.info("Window shown. Startup {}.", report.ok() ? "clean" : "blocked");
+            services = new Services(DataSourceProvider.get());
+            router = new ViewRouter(stage, scene, services);
+
+            Shortcuts.install(scene, router);
+
+            router.go(Route.LOGIN);
+            log.info("Ready. Waiting for a sign-in.");
 
         } catch (RuntimeException e) {
-            card = messageCard("OfflinePOS cannot start",
-                    ErrorHandler.explain("Startup", e),
-                    "Logs: " + AppPaths.logDir());
+            scene.setRoot(new StackPane(messageCard(
+                    ErrorHandler.explain("Startup", e), "Logs: " + AppPaths.logDir())));
         }
-
-        StackPane root = new StackPane(card);
-        root.setPadding(new Insets(40));
-
-        Scene scene = new Scene(root, 1280, 800);
-        scene.getStylesheets().add(
-                MainApp.class.getResource("/lk/com/synsoft/offlinepos/css/app.css").toExternalForm());
-
-        return scene;
     }
 
     // ------------------------------------------------------------------
-
-    private VBox readyCard(AppConfig config, StartupCheck.Report report) {
-        VBox card = card();
-
-        card.getChildren().addAll(
-                heading(config.appName(), "h1"),
-                muted("Phase 3 - security, session and permissions"),
-                new Label(),
-                mono(config.describe()),
-                mono("Logs: " + AppPaths.logDir()),
-                new Label());
-
-        for (StartupCheck.Check check : report.checks()) {
-            card.getChildren().add(checkLine(check));
-        }
-
-        card.getChildren().addAll(new Label(), muted("Next: Phase 4 - application shell and theme"));
-        return card;
-    }
 
     private VBox failedCard(StartupCheck.Report report) {
         VBox card = card();
@@ -132,9 +112,10 @@ public class MainApp extends Application {
         return card;
     }
 
-    private VBox messageCard(String title, String message, String footnote) {
+    private VBox messageCard(String message, String footnote) {
         VBox card = card();
-        card.getChildren().addAll(heading(title, "h1"), wrapped(message), new Label(), mono(footnote));
+        card.getChildren().addAll(
+                heading("OfflinePOS cannot start", "h1"), wrapped(message), new Label(), mono(footnote));
         return card;
     }
 
@@ -156,14 +137,13 @@ public class MainApp extends Application {
         return line;
     }
 
-    // ------------------------------------------------------------------
-
     private VBox card() {
         VBox card = new VBox(8);
         card.getStyleClass().add("card");
         card.setAlignment(Pos.CENTER_LEFT);
         card.setMaxWidth(760);
         card.setMaxHeight(VBox.USE_PREF_SIZE);
+        StackPane.setMargin(card, new Insets(40));
         return card;
     }
 
@@ -204,6 +184,7 @@ public class MainApp extends Application {
             Session.end();
         }
 
+        BackgroundTasks.shutdown();
         DataSourceProvider.close();
     }
 }

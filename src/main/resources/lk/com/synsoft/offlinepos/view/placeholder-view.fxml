@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  Stands in for every screen a later phase builds. It is reached through the
+  same guards as a real screen, so a route nobody may open shows the refusal
+  rather than this.
+-->
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox styleClass="page" spacing="10"
+      xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="lk.com.synsoft.offlinepos.controller.PlaceholderController">
+
+    <Label fx:id="titleLabel" styleClass="page-heading"/>
+    <Label fx:id="phaseLabel" styleClass="page-subheading" wrapText="true"/>
+    <Label fx:id="guardLabel" styleClass="muted mono" wrapText="true"/>
+
+</VBox>

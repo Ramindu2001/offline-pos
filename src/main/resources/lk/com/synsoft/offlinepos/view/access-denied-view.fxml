@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Ported from PermissionRoute.jsx's Denied panel. -->
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox styleClass="page denied" spacing="10" alignment="CENTER"
+      xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="lk.com.synsoft.offlinepos.controller.AccessDeniedController">
+
+    <Label text="Not available" styleClass="page-heading"/>
+
+    <Label styleClass="muted" wrapText="true" maxWidth="420"
+           text="Your user role cannot open this screen, or it is switched off for this shop. Please ask your administrator."/>
+
+</VBox>

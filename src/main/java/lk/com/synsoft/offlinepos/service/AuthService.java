@@ -1,7 +1,10 @@
 package lk.com.synsoft.offlinepos.service;
 
+import java.util.List;
+
 import lk.com.synsoft.offlinepos.dto.auth.AppContext;
 import lk.com.synsoft.offlinepos.dto.auth.Authentication;
+import lk.com.synsoft.offlinepos.dto.auth.ShopProfile;
 import lk.com.synsoft.offlinepos.error.LoginFailedException;
 import lk.com.synsoft.offlinepos.error.NotFoundException;
 import lk.com.synsoft.offlinepos.error.PermissionDeniedException;
@@ -51,6 +54,26 @@ public interface AuthService {
      *                              LICENCE_EXPIRED
      */
     AppContext openShop(Authentication authentication, int shopId) throws LoginFailedException;
+
+    /**
+     * Moves an open session to another shop.
+     *
+     * Runs the same gates as {@link #openShop} and returns a whole new context.
+     * Not an edit to the existing one: a context with one shop's rights and
+     * another shop's id is exactly how defect D10 moved the wrong shop's stock,
+     * and an immutable record cannot be caught half way.
+     *
+     * The caller must also drop anything it cached under the old shop.
+     */
+    AppContext switchShop(AppContext current, int shopId) throws LoginFailedException;
+
+    /**
+     * The shops this session could switch to, active ones only.
+     *
+     * Read fresh rather than carried in the context: a shop can be closed, or
+     * the user unlinked from it, while they are signed in.
+     */
+    List<ShopProfile> availableShops(AppContext context);
 
     /** Closes the session in {@code userlog}. Safe to call more than once. */
     void signOut(AppContext context);

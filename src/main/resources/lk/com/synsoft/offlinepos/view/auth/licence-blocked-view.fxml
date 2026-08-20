@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Ported from LicenceBlocked.jsx. Shown when ComStat is off or the licence has run out. -->
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox styleClass="form" spacing="14"
+      xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="lk.com.synsoft.offlinepos.controller.LicenceBlockedController">
+
+    <Label fx:id="headingLabel" styleClass="form-heading" wrapText="true"/>
+
+    <Label fx:id="detailLabel" styleClass="form-note" wrapText="true"/>
+
+    <Button text="Sign out" styleClass="button-secondary"
+            maxWidth="Infinity" defaultButton="true" onAction="#onSignOut"/>
+
+</VBox>

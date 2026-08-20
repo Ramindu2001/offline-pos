@@ -140,8 +140,29 @@ public final class AuthServiceImpl implements AuthService {
 
     @Override
     public AppContext openShop(Authentication authentication, int shopId) throws LoginFailedException {
-        AuthenticatedUser user = authentication.user();
+        return open(authentication.user(), shopId);
+    }
 
+    @Override
+    public AppContext switchShop(AppContext current, int shopId) throws LoginFailedException {
+        // The gates run again in full. Being signed in already is not a reason
+        // to skip them: the other shop may be closed, or the user may never have
+        // been linked to it.
+        AppContext moved = open(current.user(), shopId);
+
+        log.info("{} moved from shop {} to shop {}.",
+                current.user().displayName(), current.shop().name(), moved.shop().name());
+
+        return moved;
+    }
+
+    @Override
+    public List<ShopProfile> availableShops(AppContext context) {
+        return transactions.inReadOnly(connection ->
+                shopDao.findForUser(connection, context.userId()));
+    }
+
+    private AppContext open(AuthenticatedUser user, int shopId) throws LoginFailedException {
         return transactions.<AppContext, LoginFailedException>inTransaction(connection -> {
 
             // Read from shopusers rather than trusting the list carried in the

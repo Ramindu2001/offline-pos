@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Ported from SelectShopPage.jsx, which replaced the legacy switchshop.php. -->
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox styleClass="form" spacing="14"
+      xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="lk.com.synsoft.offlinepos.controller.SelectShopController">
+
+    <Label text="Choose a shop" styleClass="form-heading"/>
+
+    <Label fx:id="errorLabel" styleClass="form-error" wrapText="true"
+           visible="false" managed="false"/>
+
+    <Label fx:id="emptyLabel" styleClass="form-empty" wrapText="true"
+           text="This account is not linked to any shop yet. Please ask your administrator."
+           visible="false" managed="false"/>
+
+    <ListView fx:id="shopList" styleClass="shop-list" prefHeight="220"/>
+
+    <Button fx:id="openButton" text="Open shop" styleClass="button-primary"
+            maxWidth="Infinity" defaultButton="true" onAction="#onOpen"/>
+
+    <Button text="Back to sign in" styleClass="button-secondary"
+            maxWidth="Infinity" onAction="#onBack"/>
+
+</VBox>

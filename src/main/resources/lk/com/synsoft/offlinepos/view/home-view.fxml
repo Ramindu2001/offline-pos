@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  The landing screen. Phase 13 replaces the tiles with the real dashboard;
+  for now it confirms the session and shows what this role can reach.
+-->
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox styleClass="page" spacing="18"
+      xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="lk.com.synsoft.offlinepos.controller.HomeController">
+
+    <Label fx:id="greetingLabel" styleClass="page-heading"/>
+    <Label fx:id="shopLabel" styleClass="page-subheading"/>
+
+    <FlowPane fx:id="tiles" hgap="12" vgap="12"/>
+
+    <Label fx:id="footnoteLabel" styleClass="muted" wrapText="true"/>
+
+</VBox>

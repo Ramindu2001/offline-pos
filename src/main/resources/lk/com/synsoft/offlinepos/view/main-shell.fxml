@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  The frame every signed-in screen loads into: sidebar, header, content.
+
+  Only the skeleton is here. The sidebar's contents are built in the controller
+  from the NAVIGATION list, because a menu that depends on who is signed in
+  cannot be written down in advance - which is the whole point of defect D15's
+  fix. Everything static enough to declare, is declared.
+-->
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.MenuButton?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="root" styleClass="main-shell"
+            xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="lk.com.synsoft.offlinepos.controller.MainShellController">
+
+    <!-- ============================ sidebar ============================ -->
+    <left>
+        <VBox styleClass="sidebar" prefWidth="240" minWidth="240" maxWidth="240">
+
+            <HBox styleClass="sidebar-brand" alignment="CENTER_LEFT">
+                <Label text="OfflinePOS" styleClass="sidebar-brand-text"/>
+            </HBox>
+
+            <ScrollPane fx:id="navScroll" fitToWidth="true" styleClass="sidebar-scroll"
+                        VBox.vgrow="ALWAYS" hbarPolicy="NEVER">
+                <VBox fx:id="navBox" styleClass="sidebar-nav"/>
+            </ScrollPane>
+
+            <Label fx:id="versionLabel" styleClass="sidebar-footer"/>
+        </VBox>
+    </left>
+
+    <!-- ============================= header ============================= -->
+    <top>
+        <VBox>
+            <HBox styleClass="header" alignment="CENTER_LEFT">
+
+                <Label fx:id="pageTitle" styleClass="header-title"/>
+
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <Label fx:id="dateLabel" styleClass="header-date"/>
+
+                <MenuButton fx:id="shopMenu" styleClass="header-button"/>
+
+                <MenuButton fx:id="userMenu" styleClass="header-button"/>
+            </HBox>
+
+            <!--
+              A thin bar rather than a modal. Work happening in the background
+              must never stop a cashier from typing the next line.
+            -->
+            <ProgressBar fx:id="busyBar" styleClass="busy-bar" maxWidth="Infinity"
+                         progress="-1" visible="false" managed="false"/>
+
+            <HBox fx:id="licenceStrip" styleClass="licence-strip" alignment="CENTER_LEFT"
+                  visible="false" managed="false">
+                <Label fx:id="licenceMessage"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- ============================ content ============================ -->
+    <center>
+        <StackPane fx:id="content" styleClass="content"/>
+    </center>
+
+</BorderPane>
