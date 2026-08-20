@@ -13,3 +13,4 @@ V1__baseline_schema.sql
 V2__integrity_constraints.sql
 V3__seed_reference_data.sql
 V4__bootstrap.sql
+V5__normalise_feature_names.sql

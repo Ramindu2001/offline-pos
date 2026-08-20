@@ -21,16 +21,26 @@ import org.slf4j.LoggerFactory;
 /**
  * The JavaFX application.
  *
- * Phase 2 proves the plumbing underneath: the self-check runs, the schema is
- * brought up to date, and a failure at any of it produces one readable sentence
- * on screen instead of a stack trace on a console nobody is looking at.
+ * The self-check runs, the schema is brought up to date, and a failure at any of
+ * it produces one readable sentence on screen instead of a stack trace on a
+ * console nobody is looking at.
  *
- * Phase 4 replaces the placeholder scene with the real shell (sidebar, header,
- * and the four layouts) and the router that fills it.
+ * Phase 3 built the security stack behind {@link Services} but no screen to
+ * reach it through. Phase 4 replaces the placeholder scene below with the real
+ * shell - login, sidebar, header, the four layouts - and the router that will
+ * refuse to build any view without a signed-in {@code AppContext}.
  */
 public class MainApp extends Application {
 
     private static final Logger log = LoggerFactory.getLogger(MainApp.class);
+
+    /**
+     * Built once the self-check has passed, and handed to Phase 4's router.
+     * Nothing is wired before then: a service graph over a database that failed
+     * its checks would only fail again, further from the message that explains
+     * it.
+     */
+    private Services services;
 
     @Override
     public void start(Stage stage) {
@@ -61,6 +71,11 @@ public class MainApp extends Application {
             // a row.
             StartupCheck.Report report = new StartupCheck(DataSourceProvider.get()).run();
 
+            if (report.ok()) {
+                services = new Services(DataSourceProvider.get());
+                log.info("Services wired. Waiting for a sign-in.");
+            }
+
             card = report.ok() ? readyCard(config, report) : failedCard(report);
             log.info("Window shown. Startup {}.", report.ok() ? "clean" : "blocked");
 
@@ -87,7 +102,7 @@ public class MainApp extends Application {
 
         card.getChildren().addAll(
                 heading(config.appName(), "h1"),
-                muted("Phase 2 - data access plumbing"),
+                muted("Phase 3 - security, session and permissions"),
                 new Label(),
                 mono(config.describe()),
                 mono("Logs: " + AppPaths.logDir()),
@@ -97,7 +112,7 @@ public class MainApp extends Application {
             card.getChildren().add(checkLine(check));
         }
 
-        card.getChildren().addAll(new Label(), muted("Next: Phase 3 - security, session and permissions"));
+        card.getChildren().addAll(new Label(), muted("Next: Phase 4 - application shell and theme"));
         return card;
     }
 
@@ -180,6 +195,15 @@ public class MainApp extends Application {
     public void stop() {
         // Phase 15 takes a backup here as well.
         log.info("Shutting down.");
+
+        // Closing the window is how a shift usually ends, so the session is
+        // closed here too. Without it every till would accumulate sessions that
+        // look open forever, and "who was signed in" stops being answerable.
+        if (services != null && Session.isSignedIn()) {
+            services.auth().signOut(Session.current());
+            Session.end();
+        }
+
         DataSourceProvider.close();
     }
 }

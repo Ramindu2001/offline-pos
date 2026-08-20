@@ -19,6 +19,13 @@ module lk.com.synsoft.offlinepos {
     requires org.slf4j;
     requires com.zaxxer.hikari;
 
+    // An automatic module: the bcrypt jar declares no module-info and no
+    // Automatic-Module-Name, so this name is derived from the file name. That is
+    // also why Phase 16 cannot use jlink as the pom currently configures it -
+    // jlink refuses to link automatic modules, and jpackage over a classpath
+    // application is the way out.
+    requires bcrypt;
+
     // JavaFX constructs the Application subclass reflectively.
     opens lk.com.synsoft.offlinepos.app to javafx.graphics, javafx.fxml;
 
