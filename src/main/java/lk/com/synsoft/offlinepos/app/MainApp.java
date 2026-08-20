@@ -5,22 +5,28 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import lk.com.synsoft.offlinepos.config.AppConfig;
 import lk.com.synsoft.offlinepos.config.AppPaths;
 import lk.com.synsoft.offlinepos.config.DataSourceProvider;
-import lk.com.synsoft.offlinepos.db.MigrationRunner;
+import lk.com.synsoft.offlinepos.db.StartupCheck;
+import lk.com.synsoft.offlinepos.error.ErrorHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * The JavaFX application.
  *
- * Phase 0 only proves the foundation is sound: settings load, logging writes,
- * the stylesheet applies. Phase 4 replaces the placeholder scene with the real
- * shell (sidebar, header, and the four layouts), and the router that fills it.
+ * Phase 2 proves the plumbing underneath: the self-check runs, the schema is
+ * brought up to date, and a failure at any of it produces one readable sentence
+ * on screen instead of a stack trace on a console nobody is looking at.
+ *
+ * Phase 4 replaces the placeholder scene with the real shell (sidebar, header,
+ * and the four layouts) and the router that fills it.
  */
 public class MainApp extends Application {
 
@@ -34,50 +40,35 @@ public class MainApp extends Application {
         log.info("Settings: {}", config.describe());
         log.info("Data folder: {}", AppPaths.dataDir());
 
-        // Anything that escapes a background task would otherwise vanish silently.
-        Thread.setDefaultUncaughtExceptionHandler(
-                (thread, error) -> log.error("Uncaught error on thread {}", thread.getName(), error));
-
-        // The till has no server to migrate it, so it catches its own schema up
-        // at every launch, before anything can read or write a row.
-        int applied = new MigrationRunner(DataSourceProvider.get()).migrate();
+        // Anything thrown off a background task would otherwise vanish: a
+        // packaged desktop app has no console for the default handler to print
+        // to. This has to be in place before the first task is started.
+        ErrorHandler.installUncaughtHandler();
 
         stage.setTitle(config.appName());
-        stage.setScene(buildScene(config, applied));
+        stage.setScene(buildScene(config));
         stage.setMinWidth(1024);
         stage.setMinHeight(700);
         stage.setMaximized(true);
         stage.show();
-
-        log.info("Window shown. Foundation is up.");
     }
 
-    private Scene buildScene(AppConfig config, int migrationsApplied) {
-        Label title = new Label(config.appName());
-        title.getStyleClass().add("h1");
+    private Scene buildScene(AppConfig config) {
+        VBox card;
+        try {
+            // The till has no server to migrate it and nobody to call, so it
+            // checks itself at every launch, before anything can read or write
+            // a row.
+            StartupCheck.Report report = new StartupCheck(DataSourceProvider.get()).run();
 
-        Label subtitle = new Label("Phase 1 - database schema");
-        subtitle.getStyleClass().add("muted");
+            card = report.ok() ? readyCard(config, report) : failedCard(report);
+            log.info("Window shown. Startup {}.", report.ok() ? "clean" : "blocked");
 
-        Label settings = new Label(config.describe());
-        settings.getStyleClass().addAll("mono", "muted");
-
-        Label logs = new Label("Logs: " + AppPaths.logDir());
-        logs.getStyleClass().addAll("mono", "muted");
-
-        Label schema = new Label(migrationsApplied == 0
-                ? "Schema up to date."
-                : "Applied " + migrationsApplied + " migration(s).");
-        schema.getStyleClass().add("status-ok");
-
-        Label next = new Label("Next: Phase 2 - data access plumbing");
-        next.getStyleClass().add("muted");
-
-        VBox card = new VBox(10, title, subtitle, new Label(), settings, logs, new Label(), schema, next);
-        card.getStyleClass().add("card");
-        card.setAlignment(Pos.CENTER_LEFT);
-        card.setMaxWidth(720);
-        card.setMaxHeight(VBox.USE_PREF_SIZE);
+        } catch (RuntimeException e) {
+            card = messageCard("OfflinePOS cannot start",
+                    ErrorHandler.explain("Startup", e),
+                    "Logs: " + AppPaths.logDir());
+        }
 
         StackPane root = new StackPane(card);
         root.setPadding(new Insets(40));
@@ -87,6 +78,102 @@ public class MainApp extends Application {
                 MainApp.class.getResource("/lk/com/synsoft/offlinepos/css/app.css").toExternalForm());
 
         return scene;
+    }
+
+    // ------------------------------------------------------------------
+
+    private VBox readyCard(AppConfig config, StartupCheck.Report report) {
+        VBox card = card();
+
+        card.getChildren().addAll(
+                heading(config.appName(), "h1"),
+                muted("Phase 2 - data access plumbing"),
+                new Label(),
+                mono(config.describe()),
+                mono("Logs: " + AppPaths.logDir()),
+                new Label());
+
+        for (StartupCheck.Check check : report.checks()) {
+            card.getChildren().add(checkLine(check));
+        }
+
+        card.getChildren().addAll(new Label(), muted("Next: Phase 3 - security, session and permissions"));
+        return card;
+    }
+
+    private VBox failedCard(StartupCheck.Report report) {
+        VBox card = card();
+
+        card.getChildren().addAll(
+                heading("OfflinePOS cannot start", "h1"),
+                muted("One of the checks below has to pass before the program can be used."),
+                new Label());
+
+        for (StartupCheck.Check check : report.checks()) {
+            card.getChildren().add(checkLine(check));
+        }
+
+        card.getChildren().addAll(new Label(), mono("Logs: " + AppPaths.logDir()));
+        return card;
+    }
+
+    private VBox messageCard(String title, String message, String footnote) {
+        VBox card = card();
+        card.getChildren().addAll(heading(title, "h1"), wrapped(message), new Label(), mono(footnote));
+        return card;
+    }
+
+    private HBox checkLine(StartupCheck.Check check) {
+        Label name = new Label(check.name());
+        name.setMinWidth(110);
+        name.getStyleClass().add("mono");
+
+        Label detail = wrapped(check.detail());
+        detail.getStyleClass().add(switch (check.status()) {
+            case PASS -> "status-ok";
+            case FAIL -> "status-error";
+            case SKIPPED -> "muted";
+        });
+        HBox.setHgrow(detail, Priority.ALWAYS);
+
+        HBox line = new HBox(12, name, detail);
+        line.setAlignment(Pos.TOP_LEFT);
+        return line;
+    }
+
+    // ------------------------------------------------------------------
+
+    private VBox card() {
+        VBox card = new VBox(8);
+        card.getStyleClass().add("card");
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.setMaxWidth(760);
+        card.setMaxHeight(VBox.USE_PREF_SIZE);
+        return card;
+    }
+
+    private Label heading(String text, String styleClass) {
+        Label label = new Label(text);
+        label.getStyleClass().add(styleClass);
+        return label;
+    }
+
+    private Label muted(String text) {
+        return heading(text, "muted");
+    }
+
+    private Label mono(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().addAll("mono", "muted");
+        return label;
+    }
+
+    /** Long sentences wrap instead of running off the card. */
+    private Label wrapped(String text) {
+        Label label = new Label(text);
+        label.setWrapText(true);
+        label.setMaxWidth(620);
+        return label;
     }
 
     @Override

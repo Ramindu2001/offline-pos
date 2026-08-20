@@ -46,6 +46,12 @@ public final class DataSourceProvider {
         hikari.setConnectionTimeout(5_000);
         hikari.setValidationTimeout(3_000);
 
+        // Do not throw while building the pool when the server is down. The
+        // startup self-check is what reports that, on screen and in one
+        // sentence; a pool that refuses to be constructed would instead kill the
+        // launch before there is a window to show it in.
+        hikari.setInitializationFailTimeout(-1);
+
         // Every unit of work manages its own boundary, so a borrowed connection
         // must never quietly commit a statement on its own.
         hikari.setAutoCommit(false);

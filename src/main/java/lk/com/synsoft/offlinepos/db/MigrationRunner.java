@@ -86,6 +86,33 @@ public final class MigrationRunner {
         }
     }
 
+    /**
+     * Migrations this build expects that the database has not recorded.
+     *
+     * Read after {@link #migrate()} as a self-check: it should always be empty,
+     * and if it is not then a migration silently did nothing, which is worth
+     * refusing to start over. Also answers "what version is this till on" for
+     * the startup log without re-reading the index anywhere else.
+     */
+    public List<String> pending() {
+        try (Connection connection = dataSource.getConnection()) {
+            createVersionTable(connection);
+
+            Map<String, String> applied = loadApplied(connection);
+
+            List<String> missing = new ArrayList<>();
+            for (String name : readIndex()) {
+                if (!applied.containsKey(name)) {
+                    missing.add(name);
+                }
+            }
+            return missing;
+
+        } catch (SQLException e) {
+            throw new MigrationException("Could not read the schema version.", e);
+        }
+    }
+
     // ------------------------------------------------------------------
 
     private void createVersionTable(Connection connection) throws SQLException {
